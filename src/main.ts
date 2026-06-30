@@ -1,4 +1,5 @@
-import { Plugin } from "obsidian";
+import { Notice, Plugin } from "obsidian";
+import { showConfirmModal } from "./confirm-modal";
 import { DEFAULT_SETTINGS, SobrietySettings, SobrietySettingTab } from "./settings";
 import { UrgeTimer } from "./urge-timer";
 import { logDailyCheckin, logUrgeEvent, ensureTrackerFile, getStreak } from "./tracker";
@@ -26,7 +27,7 @@ export default class SobrietyTrackerPlugin extends Plugin {
 
 		// ── Ribbon icon ──
 		this.addRibbonIcon("shield", "Start urge timer", () => {
-			this.startUrgeTimer();
+			this.handleStartUrgeTimer();
 		});
 
 		// ── Commands ──
@@ -34,14 +35,23 @@ export default class SobrietyTrackerPlugin extends Plugin {
 			id: "start-urge-timer",
 			name: "Start urge timer",
 			icon: "shield",
-			callback: () => this.startUrgeTimer(),
+			callback: () => this.handleStartUrgeTimer(),
 		});
 
 		this.addCommand({
 			id: "cancel-urge-timer",
 			name: "Cancel urge timer (relapse)",
 			icon: "x-circle",
-			callback: () => this.urgeTimer.cancel(),
+			callback: async () => {
+				if (!this.urgeTimer.isRunning) {
+					new Notice("⏹ No timer running.");
+					return;
+				}
+				const confirmed = await this.urgeTimer.confirmCancel();
+				if (confirmed) {
+					this.urgeTimer.cancel();
+				}
+			},
 		});
 
 		this.addCommand({
@@ -98,7 +108,13 @@ export default class SobrietyTrackerPlugin extends Plugin {
 
 	// ── Urge timer ──
 
-	private startUrgeTimer(): void {
+	private async handleStartUrgeTimer(): Promise<void> {
+		if (this.urgeTimer.isRunning) {
+			const ok = await showConfirmModal(this.app, "💔 Confirm Relapse", "Timer is running. Are you sure you want to relapse?", "Yes, relapse", "Keep going");
+			if (!ok) return;
+			this.urgeTimer.cancel();
+			return;
+		}
 		this.urgeTimer.start(this.settings.urgeTimerMinutes);
 	}
 

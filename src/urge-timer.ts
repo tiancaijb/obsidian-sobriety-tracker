@@ -1,4 +1,5 @@
 import { App, Plugin, StatusBarItem } from "obsidian";
+import { showConfirmModal } from "./confirm-modal";
 
 export class UrgeTimer {
 	private plugin: Plugin;
@@ -32,12 +33,8 @@ export class UrgeTimer {
 		return Math.floor((Date.now() - this.startTime.getTime()) / 1000);
 	}
 
-	start(durationMinutes: number): void {
-		if (this.running) {
-			// Confirm reset
-			this.cancel();
-		}
 
+	start(durationMinutes: number): void {
 		this.totalSeconds = durationMinutes * 60;
 		this.remainingSeconds = this.totalSeconds;
 		this.startTime = new Date();
@@ -127,6 +124,29 @@ export class UrgeTimer {
 		const sec = this.remainingSeconds % 60;
 		this.statusBarItem.setText(`🛡️ ${min}:${sec.toString().padStart(2, "0")}`);
 		this.statusBarItem.style.display = "";
+	}
+
+	/**
+	 * Prompt the user to confirm relapse cancellation.
+	 * Returns true if user confirmed.
+	 */
+	async confirmCancel(): Promise<boolean> {
+		const elapsed = this.elapsedSeconds;
+		const min = Math.floor(elapsed / 60);
+		const sec = elapsed % 60;
+		let msg = "Are you sure you want to relapse?";
+		if (elapsed > 0) msg += `\nYou held strong for ${min}m ${sec}s.`;
+		return showConfirmModal(this.app, "💔 Confirm Relapse", msg, "Yes, relapse", "Keep going");
+	}
+
+	/**
+	 * Silently stop without logging (for restart / fresh start).
+	 */
+	reset(): void {
+		this.stop();
+		this.remainingSeconds = 0;
+		this.startTime = null;
+		this.updateDisplay();
 	}
 
 	/**
