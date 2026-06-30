@@ -26,7 +26,7 @@ export async function logDailyCheckin(
 	const file = await ensureTrackerFile(app, path);
 	const today = new Date();
 	const dateStr = formatDate(today);
-	const entry = `- [${status === "success" ? "x" : " "}] ${dateStr}${note ? " — " + note : ""}\n`;
+	const entry = `- ${dateStr}${note ? " — " + note : ""} ${status === "success" ? "✓" : "✗"}\n`;
 
 	let content = await app.vault.read(file);
 	const sectionMarker = "## Daily Check-ins";
@@ -65,8 +65,8 @@ export async function logUrgeEvent(
 	const weekday = formatWeekday(now);
 
 	const entry = victory
-		? `- [x] ${dateStr} ${timeStr} — Urge resisted, stayed strong for ${durationMinutes} min ✓\n`
-		: `- [ ] ${dateStr} ${timeStr} — Relapse${note ? " (" + note + ")" : ""} ✗\n`;
+		? `- ${dateStr} ${timeStr} ✓ Urge resisted, stayed strong for ${durationMinutes} min\n`
+		: `- ${dateStr} ${timeStr} ✗ Relapse${note ? " (" + note + ")" : ""}\n`;
 
 	let content = await app.vault.read(file);
 	const sectionMarker = "## Urge Log";
@@ -102,7 +102,7 @@ export async function getStreak(app: App, path: string): Promise<number> {
 	const entries = checkinMatch[1]
 		.split("\n")
 		.map(l => l.trim())
-		.filter(l => /^- \[([ x])\] /.test(l));
+		.filter(l => /^- \d{4}-\d{2}-\d{2}/.test(l));
 
 	if (entries.length === 0) return 0;
 
@@ -110,12 +110,12 @@ export async function getStreak(app: App, path: string): Promise<number> {
 	let streak = 0;
 	const today = new Date();
 	today.setHours(0, 0, 0, 0);
-
 	for (let i = entries.length - 1; i >= 0; i--) {
-		const match = entries[i].match(/^- \[([ x])\] (\d{4}-\d{2}-\d{2})/);
+		const match = entries[i].match(/^- (\d{4}-\d{2}-\d{2})/);
 		if (!match) break;
 
-		const isChecked = match[1] === "x";
+		const isChecked = entries[i].includes("✓");
+		if (!isChecked) break; // Break streak on first unchecked
 		if (!isChecked) break; // Break streak on first unchecked
 
 		const entryDate = new Date(match[2] + "T00:00:00");
