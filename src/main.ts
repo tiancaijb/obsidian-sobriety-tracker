@@ -189,13 +189,42 @@ export default class SobrietyTrackerPlugin extends Plugin {
 			const currentMin = pad(now.getHours()) + ":" + pad(now.getMinutes());
 			const currentSec = now.getSeconds();
 
-			// Fire within the first 10 seconds of the target minute
 			if (currentMin === this.settings.reminderTime && currentSec < 10) {
-				new Notification("🔔 Sobriety Check-in", {
-					body: `Time for your daily check-in! How was today?`,
-				});
+				this.fireReminder();
 			}
 		}, checkInterval);
+	}
+
+	private async fireReminder(): Promise<void> {
+		// Obsidian in-app notice
+		new Notice("🔔 Sobriety check-in time! How was today?");
+
+		// Web/Electron notification (system-level popup)
+		try {
+			new Notification("🔔 Sobriety Check-in", {
+				body: "Time for your daily check-in! How was today?",
+			});
+		} catch (_) {
+			// Notification API not available
+		}
+
+		// Ask user via modal: successful or relapse?
+		const success = await showConfirmModal(
+			this.app,
+			"🔔 Daily Check-in",
+			"How was today?",
+			"Successful ✓",
+			"Relapse ✗"
+		);
+
+		try {
+			await logDailyCheckin(this.app, this.settings.trackerFilePath, success ? "success" : "relapse");
+			const streak = await getStreak(this.app, this.settings.trackerFilePath);
+			new Notice(`✅ Check-in recorded! Current streak: ${streak} day${streak !== 1 ? "s" : ""}`);
+		} catch (e) {
+			new Notice("❌ Failed to record check-in. Open tracker file to do it manually.");
+			console.error("Check-in error:", e);
+		}
 	}
 
 	stopReminder(): void {
