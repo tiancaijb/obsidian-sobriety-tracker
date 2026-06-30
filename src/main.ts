@@ -4,6 +4,7 @@ import { DEFAULT_SETTINGS, SobrietySettings, SobrietySettingTab } from "./settin
 import { UrgeTimer } from "./urge-timer";
 import { logDailyCheckin, logUrgeEvent, ensureTrackerFile, getStreak } from "./tracker";
 import { VictoryModal } from "./victory-modal";
+import { DashboardView, VIEW_TYPE_DASHBOARD } from "./dashboard-view";
 
 export default class SobrietyTrackerPlugin extends Plugin {
 	settings!: SobrietySettings;
@@ -85,6 +86,16 @@ export default class SobrietyTrackerPlugin extends Plugin {
 		// ── Settings tab ──
 		this.addSettingTab(new SobrietySettingTab(this.app, this));
 
+		// ── Dashboard view ──
+		this.registerView(VIEW_TYPE_DASHBOARD, (leaf) => new DashboardView(leaf, this));
+
+		this.addCommand({
+			id: "open-dashboard",
+			name: "Open dashboard",
+			icon: "calendar",
+			callback: () => this.openDashboard(),
+		});
+
 		// ── Start daily reminder ──
 		if (this.settings.enableReminder) {
 			this.startReminder();
@@ -161,6 +172,19 @@ export default class SobrietyTrackerPlugin extends Plugin {
 			new Notice("❌ Could not calculate streak.");
 			console.error("Streak error:", e);
 		}
+	}
+
+	// ── Dashboard ──
+
+	async openDashboard(): Promise<void> {
+		const { workspace } = this.app;
+		let leaf = workspace.getLeavesOfType(VIEW_TYPE_DASHBOARD)[0];
+		if (!leaf) {
+			leaf = workspace.getRightLeaf(false);
+			if (!leaf) return;
+			await leaf.setViewState({ type: VIEW_TYPE_DASHBOARD, active: true });
+		}
+		workspace.revealLeaf(leaf);
 	}
 
 	// ── Open tracker file ──

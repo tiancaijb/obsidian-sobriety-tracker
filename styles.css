@@ -91,3 +91,97 @@
 .sobriety-settings .setting-item:last-child {
 	border-bottom: none;
 }
+
+/* ── Dashboard ── */
+.sobriety-dashboard {
+	padding: 16px;
+}
+
+.sobriety-dashboard h2 {
+	text-align: center;
+	margin-bottom: 20px;
+	font-size: 20px;
+}
+
+.sobriety-dashboard h3 {
+	margin: 16px 0 8px;
+	font-size: 14px;
+	color: var(--text-muted);
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+}
+
+.sobriety-card {
+	text-align: center;
+	padding: 24px 16px;
+	margin-bottom: 16px;
+	background: var(--background-secondary);
+	border-radius: 12px;
+}
+
+.sobriety-streak-num {
+	font-size: 48px;
+	font-weight: 900;
+	line-height: 1;
+	color: var(--text-normal);
+}
+
+.sobriety-streak-label {
+	font-size: 14px;
+	color: var(--text-muted);
+	margin-top: 4px;
+}
+
+.sobriety-stats-grid {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 8px;
+	margin-bottom: 8px;
+}
+
+.sobriety-stat-box {
+	background: var(--background-secondary);
+	border-radius: 8px;
+	padding: 12px;
+	text-align: center;
+}
+
+.sobriety-stat-value {
+	font-size: 24px;
+	font-weight: 700;
+	line-height: 1.2;
+}
+
+.sobriety-stat-label {
+	font-size: 11px;
+	color: var(--text-muted);
+	text-transform: uppercase;
+	letter-spacing: 0.3px;
+	margin-top: 2px;
+}
+
+.sobriety-stat-green .sobriety-stat-value { color: var(--color-green); }
+.sobriety-stat-red .sobriety-stat-value { color: var(--color-red); }
+.sobriety-stat-yellow .sobriety-stat-value { color: var(--color-yellow); }
+
+.sobriety-recent {
+	list-style: none;
+	padding: 0;
+	margin: 0;
+}
+
+.sobriety-recent li {
+	padding: 4px 0;
+	font-size: 13px;
+	font-variant-numeric: tabular-nums;
+}
+
+.sobriety-dashboard-btn {
+	text-align: center;
+	margin-top: 20px;
+}
+
+.sobriety-dashboard-btn button {
+	padding: 6px 16px;
+	cursor: pointer;
+}

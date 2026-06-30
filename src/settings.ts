@@ -71,19 +71,18 @@ export class SobrietySettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
-			.setName("Reminder time")
-			.setDesc("Time for the daily check-in reminder (24h format)")
-			.addText(text => text
-				.setPlaceholder("20:30")
-				.setValue(this.plugin.settings.reminderTime)
-				.onChange(async val => {
-					if (/^\d{2}:\d{2}$/.test(val)) {
-						this.plugin.settings.reminderTime = val;
-						await this.plugin.saveSettings();
-						if (this.plugin.settings.enableReminder) {
-							this.plugin.startReminder();
-						}
-					}
-				}));
-	}
+		.setName("Reminder time")
+		.setDesc("Time for the daily check-in reminder")
+		.addText(text => {
+			text.inputEl.type = "time";
+			text.setValue(this.plugin.settings.reminderTime);
+			text.onChange(async val => {
+				if (/^\d{2}:\d{2}$/.test(val)) {
+					this.plugin.settings.reminderTime = val;
+					await this.plugin.saveSettings();
+					if (this.plugin.settings.enableReminder) this.plugin.startReminder();
+				}
+			});
+		});
+}
 }
