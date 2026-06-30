@@ -130,13 +130,13 @@ export class UrgeTimer {
 	 * Prompt the user to confirm relapse cancellation.
 	 * Returns true if user confirmed.
 	 */
-	async confirmCancel(): Promise<boolean> {
+	async confirmCancel(L: import("./lang").UrgeTimerPack): Promise<boolean> {
 		const elapsed = this.elapsedSeconds;
 		const min = Math.floor(elapsed / 60);
 		const sec = elapsed % 60;
-		let msg = "Are you sure you want to relapse?";
-		if (elapsed > 0) msg += `\nYou held strong for ${min}m ${sec}s.`;
-		return showConfirmModal(this.app, "💔 Confirm Relapse", msg, "Yes, relapse", "Keep going");
+		let msg = L.confirmMsg;
+		if (elapsed > 0) msg += `\n${L.heldStrong} ${min}m ${sec}s.`;
+		return showConfirmModal(this.app, L.confirmTitle, msg, L.confirmOk, L.confirmCancel);
 	}
 
 	/**

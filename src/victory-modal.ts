@@ -1,51 +1,44 @@
 import { App, Modal } from "obsidian";
+import { VictoryPack } from "./lang";
 
 export class VictoryModal extends Modal {
 	private durationMinutes: number;
+	private L: VictoryPack;
 
-	constructor(app: App, durationMinutes: number) {
+	constructor(app: App, durationMinutes: number, langPack: VictoryPack) {
 		super(app);
 		this.durationMinutes = durationMinutes;
+		this.L = langPack;
 	}
 
 	onOpen(): void {
 		const { contentEl } = this;
+		const L = this.L;
 		contentEl.addClass("sobriety-victory-modal");
 
 		const now = new Date();
 		const timeStr = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
 
 		contentEl.createDiv({ cls: "badge", text: "🎖" });
-		contentEl.createEl("h2", { text: "You Did It!" });
-		contentEl.createDiv({ cls: "subtitle", text: "You resisted the urge" });
-		contentEl.createDiv({ cls: "time-info", text: `${timeStr} · Stayed strong for ${this.durationMinutes} minutes` });
+		contentEl.createEl("h2", { text: L.title });
+		contentEl.createDiv({ cls: "subtitle", text: L.subtitle });
+		contentEl.createDiv({ cls: "time-info", text: `${timeStr} · ${L.timeInfo} ${this.durationMinutes} min` });
 
 		const msg = contentEl.createDiv({ cls: "message" });
-		msg.innerHTML = `
-			Every resistance reshapes your brain.<br>
-			You're not <strong>losing</strong> anything — you're <strong>winning</strong> yourself back.<br><br>
-			The urge was just passing through. You are the one in control.
-		`;
+		msg.innerHTML = L.msg;
 
 		const quote = contentEl.createDiv({ cls: "quote" });
-		quote.innerHTML = `
-			&ldquo;Between stimulus and response there is a space.<br>
-			In that space is our power to choose our response.&rdquo;<br>
-			&mdash; Viktor Frankl
-		`;
+		quote.innerHTML = `&ldquo;${L.quote}&rdquo;<br>&mdash; ${L.quoteAuthor}`;
 
-		// Launch confetti
 		this.launchConfetti();
 	}
 
 	onClose(): void {
-		const { contentEl } = this;
-		contentEl.empty();
+		this.contentEl.empty();
 	}
 
 	private launchConfetti(): void {
 		const colors = ["#f7d94e", "#f5a623", "#ff6b6b", "#48dbfb", "#ff9ff3", "#54a0ff", "#5f27cd"];
-
 		for (let i = 0; i < 60; i++) {
 			const el = document.createElement("div");
 			el.addClass("sobriety-confetti");
@@ -56,13 +49,8 @@ export class VictoryModal extends Modal {
 			el.style.borderRadius = Math.random() > 0.5 ? "50%" : "2px";
 			el.style.animationDuration = (2 + Math.random() * 3) + "s";
 			el.style.animationDelay = Math.random() * 2 + "s";
-
 			document.body.appendChild(el);
-
-			// Remove after animation
-			setTimeout(() => {
-				if (el.parentNode) el.parentNode.removeChild(el);
-			}, 6000);
+			setTimeout(() => el.parentNode?.removeChild(el), 6000);
 		}
 	}
 }

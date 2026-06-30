@@ -5,31 +5,26 @@ import { UrgeTimer } from "./urge-timer";
 import { logDailyCheckin, logUrgeEvent, ensureTrackerFile, getStreak } from "./tracker";
 import { VictoryModal } from "./victory-modal";
 import { DashboardView, VIEW_TYPE_DASHBOARD } from "./dashboard-view";
+import { getLang, Lang } from "./lang";
 
 export default class SobrietyTrackerPlugin extends Plugin {
 	settings!: SobrietySettings;
 	urgeTimer!: UrgeTimer;
 	private reminderIntervalId: number | null = null;
 
+	// Convenience getter for current lang pack
+	get L() { return getLang(this.settings.language); }
+
 	async onload(): Promise<void> {
 		await this.loadSettings();
 
-		// Initialize urge timer
 		this.urgeTimer = new UrgeTimer(this, this.app);
 
-		// Wire timer callbacks
-		this.urgeTimer.onVictory = () => {
-			this.handleVictory();
-		};
-
-		this.urgeTimer.onRelapse = (durationSeconds) => {
-			this.handleRelapse(durationSeconds);
-		};
+		this.urgeTimer.onVictory = () => this.handleVictory();
+		this.urgeTimer.onRelapse = (d) => this.handleRelapse(d);
 
 		// ── Ribbon icon ──
-		this.addRibbonIcon("shield", "Start urge timer", () => {
-			this.handleStartUrgeTimer();
-		});
+		this.addRibbonIcon("shield", "Start urge timer", () => this.handleStartUrgeTimer());
 
 		// ── Commands ──
 		this.addCommand({
@@ -45,13 +40,11 @@ export default class SobrietyTrackerPlugin extends Plugin {
 			icon: "x-circle",
 			callback: async () => {
 				if (!this.urgeTimer.isRunning) {
-					new Notice("⏹ No timer running.");
+					new Notice(this.L.urgeTimer.noTimer);
 					return;
 				}
-				const confirmed = await this.urgeTimer.confirmCancel();
-				if (confirmed) {
-					this.urgeTimer.cancel();
-				}
+				const confirmed = await this.urgeTimer.confirmCancel(this.L.urgeTimer);
+				if (confirmed) this.urgeTimer.cancel();
 			},
 		});
 
@@ -88,7 +81,6 @@ export default class SobrietyTrackerPlugin extends Plugin {
 
 		// ── Dashboard view ──
 		this.registerView(VIEW_TYPE_DASHBOARD, (leaf) => new DashboardView(leaf, this));
-
 		this.addCommand({
 			id: "open-dashboard",
 			name: "Open dashboard",
@@ -96,18 +88,14 @@ export default class SobrietyTrackerPlugin extends Plugin {
 			callback: () => this.openDashboard(),
 		});
 
-		// ── Start daily reminder ──
-		if (this.settings.enableReminder) {
-			this.startReminder();
-		}
+		// ── Daily reminder ──
+		if (this.settings.enableReminder) this.startReminder();
 	}
 
 	onunload(): void {
 		this.stopReminder();
 		this.urgeTimer.unload();
 	}
-
-	// ── Settings ──
 
 	async loadSettings(): Promise<void> {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
@@ -121,7 +109,8 @@ export default class SobrietyTrackerPlugin extends Plugin {
 
 	private async handleStartUrgeTimer(): Promise<void> {
 		if (this.urgeTimer.isRunning) {
-			const ok = await showConfirmModal(this.app, "💔 Confirm Relapse", "Timer is running. Are you sure you want to relapse?", "Yes, relapse", "Keep going");
+			const U = this.L.urgeTimer;
+			const ok = await showConfirmModal(this.app, U.confirmTitle, U.confirmMsg, U.confirmOk, U.confirmCancel);
 			if (!ok) return;
 			this.urgeTimer.cancel();
 			return;
@@ -129,24 +118,16 @@ export default class SobrietyTrackerPlugin extends Plugin {
 		this.urgeTimer.start(this.settings.urgeTimerMinutes);
 	}
 
-	private async handleVictory(): Promise<void> {
-		try {
-			await logUrgeEvent(this.app, this.settings.trackerFilePath, true, this.settings.urgeTimerMinutes);
-		} catch (e) {
-			console.error("Failed to log victory:", e);
-		}
-
-		// Show victory modal
-		new VictoryModal(this.app, this.settings.urgeTimerMinutes).open();
+	private handleVictory(): void {
+		logUrgeEvent(this.app, this.settings.trackerFilePath, true, this.settings.urgeTimerMinutes)
+			.catch(e => console.error("Failed to log victory:", e));
+		new VictoryModal(this.app, this.settings.urgeTimerMinutes, this.L.victory).open();
 	}
 
-	private async handleRelapse(durationSeconds: number): Promise<void> {
-		try {
-			const durMin = Math.floor(durationSeconds / 60);
-			await logUrgeEvent(this.app, this.settings.trackerFilePath, false, durMin);
-		} catch (e) {
-			console.error("Failed to log relapse:", e);
-		}
+	private handleRelapse(durationSeconds: number): void {
+		const durMin = Math.floor(durationSeconds / 60);
+		logUrgeEvent(this.app, this.settings.trackerFilePath, false, durMin)
+			.catch(e => console.error("Failed to log relapse:", e));
 	}
 
 	// ── Daily check-in ──
@@ -155,22 +136,21 @@ export default class SobrietyTrackerPlugin extends Plugin {
 		try {
 			await logDailyCheckin(this.app, this.settings.trackerFilePath, status);
 			const streak = await getStreak(this.app, this.settings.trackerFilePath);
-			new Notice(`✅ Check-in recorded! Current streak: ${streak} day${streak !== 1 ? "s" : ""}`);
+			new Notice(`${this.L.reminder.recorded} ${streak} day${streak !== 1 ? "s" : ""}`);
 		} catch (e) {
-			new Notice("❌ Failed to record check-in. See console for details.");
+			new Notice(this.L.reminder.failed);
 			console.error("Check-in error:", e);
 		}
 	}
 
-	// ── Streak display ──
+	// ── Streak ──
 
 	private async showStreak(): Promise<void> {
 		try {
 			const streak = await getStreak(this.app, this.settings.trackerFilePath);
-			new Notice(`🔥 Current streak: ${streak} day${streak !== 1 ? "s" : ""}`);
+			new Notice(`🔥 ${this.L.dashboard.dayStreak.replace("day streak", "")} ${streak} ${this.L.dashboard.dayStreak}`);
 		} catch (e) {
 			new Notice("❌ Could not calculate streak.");
-			console.error("Streak error:", e);
 		}
 	}
 
@@ -203,50 +183,26 @@ export default class SobrietyTrackerPlugin extends Plugin {
 
 	startReminder(): void {
 		this.stopReminder();
-
-		const checkInterval = 60 * 1000; // Check every minute
-
 		this.reminderIntervalId = window.setInterval(() => {
 			if (!this.settings.enableReminder) return;
-
 			const now = new Date();
-			const currentMin = pad(now.getHours()) + ":" + pad(now.getMinutes());
-			const currentSec = now.getSeconds();
-
-			if (currentMin === this.settings.reminderTime && currentSec < 10) {
-				this.fireReminder();
-			}
-		}, checkInterval);
+			const cur = pad(now.getHours()) + ":" + pad(now.getMinutes());
+			if (cur === this.settings.reminderTime && now.getSeconds() < 10) this.fireReminder();
+		}, 60000);
 	}
 
 	private async fireReminder(): Promise<void> {
-		// Obsidian in-app notice
-		new Notice("🔔 Sobriety check-in time! How was today?");
+		const R = this.L.reminder;
+		new Notice(R.notice);
+		try { new Notification(R.notifTitle, { body: R.notifBody }); } catch (_) {}
 
-		// Web/Electron notification (system-level popup)
-		try {
-			new Notification("🔔 Sobriety Check-in", {
-				body: "Time for your daily check-in! How was today?",
-			});
-		} catch (_) {
-			// Notification API not available
-		}
-
-		// Ask user via modal: successful or relapse?
-		const success = await showConfirmModal(
-			this.app,
-			"🔔 Daily Check-in",
-			"How was today?",
-			"Successful ✓",
-			"Relapse ✗"
-		);
-
+		const success = await showConfirmModal(this.app, R.modalTitle, R.modalMsg, R.okSuccess, R.okRelapse);
 		try {
 			await logDailyCheckin(this.app, this.settings.trackerFilePath, success ? "success" : "relapse");
 			const streak = await getStreak(this.app, this.settings.trackerFilePath);
-			new Notice(`✅ Check-in recorded! Current streak: ${streak} day${streak !== 1 ? "s" : ""}`);
+			new Notice(`${R.recorded} ${streak} day${streak !== 1 ? "s" : ""}`);
 		} catch (e) {
-			new Notice("❌ Failed to record check-in. Open tracker file to do it manually.");
+			new Notice(R.failed);
 			console.error("Check-in error:", e);
 		}
 	}
