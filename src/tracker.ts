@@ -8,8 +8,8 @@ export async function ensureTrackerFile(app: App, path: string): Promise<TFile> 
 	let file = app.vault.getAbstractFileByPath(normalized);
 	if (file instanceof TFile) return file;
 
-	// Create new file with header
-	const header = `# Sobriety Tracker\n\n## Daily Check-ins\n\n## Urge Log\n\n`;
+	// Create new file (Obsidian uses filename as title, no H1 needed)
+	const header = `## Daily Check-ins\n\n## Urge Log\n\n`;
 	file = await app.vault.create(normalized, header);
 	return file as TFile;
 }

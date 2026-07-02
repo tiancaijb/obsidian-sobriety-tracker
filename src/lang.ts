@@ -13,7 +13,10 @@ export interface LangPack {
 		urgeTimerDuration: { name: string; desc: string };
 		enableReminder: { name: string; desc: string };
 		reminderTime: { name: string; desc: string };
+		reminderTolerance: { name: string; desc: string };
 		language: { name: string; desc: string };
+		minutes: string;
+		disabled: string;
 	};
 
 	// ── Urge timer ──
@@ -81,7 +84,10 @@ export const en: LangPack = {
 		urgeTimerDuration: { name: "Urge timer duration", desc: "How many minutes the urge timer should count down" },
 		enableReminder: { name: "Enable daily reminder", desc: "Show a notification at the set time to prompt daily check-in" },
 		reminderTime: { name: "Reminder time", desc: "Time for the daily check-in reminder" },
+		reminderTolerance: { name: "Missed reminder tolerance", desc: "If Obsidian is closed at reminder time, fire it anyway within this many minutes after. E.g., reminder at 20:30, tolerance 120min → if you open Obsidian at 22:00 it still fires. 0 = never catch up." },
 		language: { name: "Language", desc: "Display language" },
+		minutes: "min",
+		disabled: "Off",
 	},
 	urgeTimer: {
 		confirmTitle: "💔 Confirm Relapse",
@@ -141,7 +147,10 @@ const zh: LangPack = {
 		urgeTimerDuration: { name: "冲动计时时长", desc: "冲动计时器倒计时分钟数" },
 		enableReminder: { name: "开启每日提醒", desc: "在指定时间弹出通知，提醒每日打卡" },
 		reminderTime: { name: "提醒时间", desc: "每日打卡提醒时间" },
+		reminderTolerance: { name: "错过容差", desc: "如果 Obsidian 在提醒时间没打开，延后多少分钟内仍补发提醒。例如：提醒 20:30，容差 120 分钟 → 22:00 打开仍会弹。0 = 不补发。" },
 		language: { name: "语言", desc: "界面显示语言" },
+		minutes: "分钟",
+		disabled: "关闭",
 	},
 	urgeTimer: {
 		confirmTitle: "💔 确认破戒",

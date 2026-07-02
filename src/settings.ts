@@ -8,6 +8,8 @@ export interface SobrietySettings {
 	reminderTime: string;
 	enableReminder: boolean;
 	language: Lang;
+	reminderToleranceMinutes: number;
+	lastReminderDate: string;
 }
 
 export const DEFAULT_SETTINGS: SobrietySettings = {
@@ -16,6 +18,8 @@ export const DEFAULT_SETTINGS: SobrietySettings = {
 	reminderTime: "20:30",
 	enableReminder: true,
 	language: "en",
+	reminderToleranceMinutes: 120,
+	lastReminderDate: "",
 };
 
 export class SobrietySettingTab extends PluginSettingTab {
@@ -46,28 +50,32 @@ export class SobrietySettingTab extends PluginSettingTab {
 		new Setting(containerEl)
 			.setName(L.urgeTimerDuration.name)
 			.setDesc(L.urgeTimerDuration.desc)
-			.addSlider(slider => slider
-				.setLimits(5, 120, 5)
-				.setValue(this.plugin.settings.urgeTimerMinutes)
-				.setDynamicTooltip()
-				.onChange(async val => {
-					this.plugin.settings.urgeTimerMinutes = val;
+			.addDropdown(drop => {
+				[5, 10, 15, 20, 25, 30, 45, 60, 90, 120].forEach(v =>
+					drop.addOption(String(v), `${v} ${L.settings.minutes}`));
+				drop.setValue(String(this.plugin.settings.urgeTimerMinutes));
+				drop.onChange(async val => {
+					this.plugin.settings.urgeTimerMinutes = Number(val);
 					await this.plugin.saveSettings();
-				}));
+				});
+			});
+
+		const reminderEnabled = this.plugin.settings.enableReminder;
 
 		new Setting(containerEl)
 			.setName(L.enableReminder.name)
 			.setDesc(L.enableReminder.desc)
 			.addToggle(toggle => toggle
-				.setValue(this.plugin.settings.enableReminder)
+				.setValue(reminderEnabled)
 				.onChange(async val => {
 					this.plugin.settings.enableReminder = val;
 					await this.plugin.saveSettings();
 					if (val) this.plugin.startReminder();
 					else this.plugin.stopReminder();
+					this.display();
 				}));
 
-		new Setting(containerEl)
+		const timeSetting = new Setting(containerEl)
 			.setName(L.reminderTime.name)
 			.setDesc(L.reminderTime.desc)
 			.addText(text => {
@@ -81,6 +89,22 @@ export class SobrietySettingTab extends PluginSettingTab {
 					}
 				});
 			});
+		timeSetting.settingEl.style.display = reminderEnabled ? "" : "none";
+
+		const tolSetting = new Setting(containerEl)
+			.setName(L.reminderTolerance.name)
+			.setDesc(L.reminderTolerance.desc)
+			.addDropdown(drop => {
+				drop.addOption("0", L.settings.disabled);
+				[15, 30, 45, 60, 90, 120, 150, 180].forEach(v =>
+					drop.addOption(String(v), `${v} ${L.settings.minutes}`));
+				drop.setValue(String(this.plugin.settings.reminderToleranceMinutes));
+				drop.onChange(async val => {
+					this.plugin.settings.reminderToleranceMinutes = Number(val);
+					await this.plugin.saveSettings();
+				});
+			});
+		tolSetting.settingEl.style.display = reminderEnabled ? "" : "none";
 
 		new Setting(containerEl)
 			.setName(L.language.name)

@@ -89,7 +89,10 @@ export default class SobrietyTrackerPlugin extends Plugin {
 		});
 
 		// ── Daily reminder ──
-		if (this.settings.enableReminder) this.startReminder();
+		if (this.settings.enableReminder) {
+			this.startReminder();
+			this.checkMissedReminder();
+		}
 	}
 
 	onunload(): void {
@@ -205,6 +208,39 @@ export default class SobrietyTrackerPlugin extends Plugin {
 			new Notice(R.failed);
 			console.error("Check-in error:", e);
 		}
+
+		// Mark reminder as fired for today
+		this.settings.lastReminderDate = todayStr();
+		await this.saveSettings();
+	}
+
+	/**
+	 * On startup, check if today's reminder time has passed but is within tolerance.
+	 * Only fires if the reminder hasn't been fired today yet. One-sided: only triggers
+	 * when current time is AFTER the reminder time (never before).
+	 */
+	private async checkMissedReminder(): Promise<void> {
+		const tol = this.settings.reminderToleranceMinutes;
+		if (tol <= 0) return;
+
+		const now = new Date();
+		const today = todayStr();
+
+		// Already fired today
+		if (this.settings.lastReminderDate === today) return;
+
+		// Parse reminder time as today's date
+		const [h, m] = this.settings.reminderTime.split(":").map(Number);
+		const target = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m, 0);
+
+		// Diff in minutes (positive = current is after target = missed)
+		const diffMin = (now.getTime() - target.getTime()) / 60000;
+
+		// Only fire if current time is AFTER reminder time AND within tolerance
+		if (diffMin > 0 && diffMin <= tol) {
+			console.log(`Sobriety: missed reminder by ${Math.round(diffMin)}m, firing within tolerance`);
+			await this.fireReminder();
+		}
 	}
 
 	stopReminder(): void {
@@ -217,4 +253,9 @@ export default class SobrietyTrackerPlugin extends Plugin {
 
 function pad(n: number): string {
 	return n.toString().padStart(2, "0");
+}
+
+function todayStr(): string {
+	const d = new Date();
+	return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
