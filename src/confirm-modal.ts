@@ -16,11 +16,7 @@ export function showConfirmModal(
 
 		modal.contentEl.createEl("p", { text: message });
 
-		const btnDiv = modal.contentEl.createDiv();
-		btnDiv.style.display = "flex";
-		btnDiv.style.gap = "12px";
-		btnDiv.style.justifyContent = "center";
-		btnDiv.style.marginTop = "16px";
+		const btnDiv = modal.contentEl.createDiv({ cls: "sobriety-confirm-buttons" });
 
 		new Setting(btnDiv)
 			.addButton((btn) =>

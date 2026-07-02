@@ -185,3 +185,11 @@
 	padding: 6px 16px;
 	cursor: pointer;
 }
+
+/* Confirm modal buttons */
+.sobriety-confirm-buttons {
+	display: flex;
+	gap: 12px;
+	justify-content: center;
+	margin-top: 16px;
+}

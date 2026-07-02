@@ -116,14 +116,14 @@ export class UrgeTimer {
 	private updateDisplay(): void {
 		if (!this.running || this.remainingSeconds <= 0) {
 			this.statusBarItem.setText("");
-			this.statusBarItem.style.display = "none";
+			this.statusBarItem.setCssProps({ display: "none" });
 			return;
 		}
 
 		const min = Math.floor(this.remainingSeconds / 60);
 		const sec = this.remainingSeconds % 60;
 		this.statusBarItem.setText(`🛡️ ${min}:${sec.toString().padStart(2, "0")}`);
-		this.statusBarItem.style.display = "";
+		this.statusBarItem.setCssProps({ display: "" });
 	}
 
 	/**

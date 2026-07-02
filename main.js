@@ -31,11 +31,7 @@ function showConfirmModal(app, title, message, okText = "OK", cancelText = "Canc
     const modal = new import_obsidian.Modal(app);
     modal.titleEl.setText(title);
     modal.contentEl.createEl("p", { text: message });
-    const btnDiv = modal.contentEl.createDiv();
-    btnDiv.style.display = "flex";
-    btnDiv.style.gap = "12px";
-    btnDiv.style.justifyContent = "center";
-    btnDiv.style.marginTop = "16px";
+    const btnDiv = modal.contentEl.createDiv({ cls: "sobriety-confirm-buttons" });
     new import_obsidian.Setting(btnDiv).addButton(
       (btn) => btn.setButtonText(cancelText).onClick(() => {
         modal.close();
@@ -62,7 +58,9 @@ var en = {
     enableReminder: { name: "Enable daily reminder", desc: "Show a notification at the set time to prompt daily check-in" },
     reminderTime: { name: "Reminder time", desc: "Time for the daily check-in reminder" },
     reminderTolerance: { name: "Missed reminder tolerance", desc: "If Obsidian is closed at reminder time, fire it anyway within this many minutes after. E.g., reminder at 20:30, tolerance 120min \u2192 if you open Obsidian at 22:00 it still fires. 0 = never catch up." },
-    language: { name: "Language", desc: "Display language" }
+    language: { name: "Language", desc: "Display language" },
+    minutes: "min",
+    disabled: "Off"
   },
   urgeTimer: {
     confirmTitle: "\u{1F494} Confirm Relapse",
@@ -122,7 +120,9 @@ var zh = {
     enableReminder: { name: "\u5F00\u542F\u6BCF\u65E5\u63D0\u9192", desc: "\u5728\u6307\u5B9A\u65F6\u95F4\u5F39\u51FA\u901A\u77E5\uFF0C\u63D0\u9192\u6BCF\u65E5\u6253\u5361" },
     reminderTime: { name: "\u63D0\u9192\u65F6\u95F4", desc: "\u6BCF\u65E5\u6253\u5361\u63D0\u9192\u65F6\u95F4" },
     reminderTolerance: { name: "\u9519\u8FC7\u5BB9\u5DEE", desc: "\u5982\u679C Obsidian \u5728\u63D0\u9192\u65F6\u95F4\u6CA1\u6253\u5F00\uFF0C\u5EF6\u540E\u591A\u5C11\u5206\u949F\u5185\u4ECD\u8865\u53D1\u63D0\u9192\u3002\u4F8B\u5982\uFF1A\u63D0\u9192 20:30\uFF0C\u5BB9\u5DEE 120 \u5206\u949F \u2192 22:00 \u6253\u5F00\u4ECD\u4F1A\u5F39\u30020 = \u4E0D\u8865\u53D1\u3002" },
-    language: { name: "\u8BED\u8A00", desc: "\u754C\u9762\u663E\u793A\u8BED\u8A00" }
+    language: { name: "\u8BED\u8A00", desc: "\u754C\u9762\u663E\u793A\u8BED\u8A00" },
+    minutes: "\u5206\u949F",
+    disabled: "\u5173\u95ED"
   },
   urgeTimer: {
     confirmTitle: "\u{1F494} \u786E\u8BA4\u7834\u6212",
@@ -203,10 +203,14 @@ var SobrietySettingTab = class extends import_obsidian2.PluginSettingTab {
       this.plugin.settings.trackerFilePath = val || "sobriety-tracker.md";
       await this.plugin.saveSettings();
     }));
-    new import_obsidian2.Setting(containerEl).setName(L.urgeTimerDuration.name).setDesc(L.urgeTimerDuration.desc).addSlider((slider) => slider.setLimits(5, 120, 5).setValue(this.plugin.settings.urgeTimerMinutes).setDynamicTooltip().onChange(async (val) => {
-      this.plugin.settings.urgeTimerMinutes = val;
-      await this.plugin.saveSettings();
-    }));
+    new import_obsidian2.Setting(containerEl).setName(L.urgeTimerDuration.name).setDesc(L.urgeTimerDuration.desc).addDropdown((drop) => {
+      [5, 10, 15, 20, 25, 30, 45, 60, 90, 120].forEach((v) => drop.addOption(String(v), `${v} ${L.settings.minutes}`));
+      drop.setValue(String(this.plugin.settings.urgeTimerMinutes));
+      drop.onChange(async (val) => {
+        this.plugin.settings.urgeTimerMinutes = Number(val);
+        await this.plugin.saveSettings();
+      });
+    });
     const reminderEnabled = this.plugin.settings.enableReminder;
     new import_obsidian2.Setting(containerEl).setName(L.enableReminder.name).setDesc(L.enableReminder.desc).addToggle((toggle) => toggle.setValue(reminderEnabled).onChange(async (val) => {
       this.plugin.settings.enableReminder = val;
@@ -227,12 +231,15 @@ var SobrietySettingTab = class extends import_obsidian2.PluginSettingTab {
       });
     });
     timeSetting.settingEl.style.display = reminderEnabled ? "" : "none";
-    const tolSetting = new import_obsidian2.Setting(containerEl).setName(L.reminderTolerance.name).setDesc(L.reminderTolerance.desc).addSlider(
-      (slider) => slider.setLimits(0, 180, 15).setValue(this.plugin.settings.reminderToleranceMinutes).setDynamicTooltip().onChange(async (val) => {
-        this.plugin.settings.reminderToleranceMinutes = val;
+    const tolSetting = new import_obsidian2.Setting(containerEl).setName(L.reminderTolerance.name).setDesc(L.reminderTolerance.desc).addDropdown((drop) => {
+      drop.addOption("0", L.settings.disabled);
+      [15, 30, 45, 60, 90, 120, 150, 180].forEach((v) => drop.addOption(String(v), `${v} ${L.settings.minutes}`));
+      drop.setValue(String(this.plugin.settings.reminderToleranceMinutes));
+      drop.onChange(async (val) => {
+        this.plugin.settings.reminderToleranceMinutes = Number(val);
         await this.plugin.saveSettings();
-      })
-    );
+      });
+    });
     tolSetting.settingEl.style.display = reminderEnabled ? "" : "none";
     new import_obsidian2.Setting(containerEl).setName(L.language.name).setDesc(L.language.desc).addDropdown((drop) => {
       drop.addOption("en", "English");
@@ -338,13 +345,13 @@ var UrgeTimer = class {
   updateDisplay() {
     if (!this.running || this.remainingSeconds <= 0) {
       this.statusBarItem.setText("");
-      this.statusBarItem.style.display = "none";
+      this.statusBarItem.setCssProps({ display: "none" });
       return;
     }
     const min = Math.floor(this.remainingSeconds / 60);
     const sec = this.remainingSeconds % 60;
     this.statusBarItem.setText(`\u{1F6E1}\uFE0F ${min}:${sec.toString().padStart(2, "0")}`);
-    this.statusBarItem.style.display = "";
+    this.statusBarItem.setCssProps({ display: "" });
   }
   /**
    * Prompt the user to confirm relapse cancellation.
@@ -388,9 +395,7 @@ async function ensureTrackerFile(app, path) {
   const normalized = (0, import_obsidian3.normalizePath)(path);
   let file = app.vault.getAbstractFileByPath(normalized);
   if (file instanceof import_obsidian3.TFile) return file;
-  const header = `# Sobriety Tracker
-
-## Daily Check-ins
+  const header = `## Daily Check-ins
 
 ## Urge Log
 
@@ -500,9 +505,10 @@ var VictoryModal = class extends import_obsidian4.Modal {
     contentEl.createDiv({ cls: "subtitle", text: L.subtitle });
     contentEl.createDiv({ cls: "time-info", text: `${timeStr} \xB7 ${L.timeInfo} ${this.durationMinutes} min` });
     const msg = contentEl.createDiv({ cls: "message" });
-    msg.innerHTML = L.msg;
+    msg.appendChild((0, import_obsidian4.sanitizeHTMLToDom)(L.msg));
     const quote = contentEl.createDiv({ cls: "quote" });
-    quote.innerHTML = `&ldquo;${L.quote}&rdquo;<br>&mdash; ${L.quoteAuthor}`;
+    const quoteHtml = `&ldquo;${L.quote}&rdquo;<br>&mdash; ${L.quoteAuthor}`;
+    quote.appendChild((0, import_obsidian4.sanitizeHTMLToDom)(quoteHtml));
     this.launchConfetti();
   }
   onClose() {
@@ -511,17 +517,19 @@ var VictoryModal = class extends import_obsidian4.Modal {
   launchConfetti() {
     const colors = ["#f7d94e", "#f5a623", "#ff6b6b", "#48dbfb", "#ff9ff3", "#54a0ff", "#5f27cd"];
     for (let i = 0; i < 60; i++) {
-      const el = document.createElement("div");
+      const el = activeDocument.createElement("div");
       el.addClass("sobriety-confetti");
-      el.style.left = Math.random() * 100 + "%";
-      el.style.width = 6 + Math.random() * 8 + "px";
-      el.style.height = 6 + Math.random() * 8 + "px";
-      el.style.background = colors[Math.floor(Math.random() * colors.length)];
-      el.style.borderRadius = Math.random() > 0.5 ? "50%" : "2px";
-      el.style.animationDuration = 2 + Math.random() * 3 + "s";
-      el.style.animationDelay = Math.random() * 2 + "s";
-      document.body.appendChild(el);
-      setTimeout(() => el.parentNode?.removeChild(el), 6e3);
+      el.setCssProps({
+        left: Math.random() * 100 + "%",
+        width: 6 + Math.random() * 8 + "px",
+        height: 6 + Math.random() * 8 + "px",
+        background: colors[Math.floor(Math.random() * colors.length)],
+        borderRadius: Math.random() > 0.5 ? "50%" : "2px",
+        animationDuration: 2 + Math.random() * 3 + "s",
+        animationDelay: Math.random() * 2 + "s"
+      });
+      activeDocument.body.appendChild(el);
+      window.setTimeout(() => el.parentNode?.removeChild(el), 6e3);
     }
   }
 };

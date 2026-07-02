@@ -1,4 +1,4 @@
-import { App, Modal } from "obsidian";
+import { App, Modal, sanitizeHTMLToDom } from "obsidian";
 import { VictoryPack } from "./lang";
 
 export class VictoryModal extends Modal {
@@ -25,10 +25,11 @@ export class VictoryModal extends Modal {
 		contentEl.createDiv({ cls: "time-info", text: `${timeStr} · ${L.timeInfo} ${this.durationMinutes} min` });
 
 		const msg = contentEl.createDiv({ cls: "message" });
-		msg.innerHTML = L.msg;
+		msg.appendChild(sanitizeHTMLToDom(L.msg));
 
 		const quote = contentEl.createDiv({ cls: "quote" });
-		quote.innerHTML = `&ldquo;${L.quote}&rdquo;<br>&mdash; ${L.quoteAuthor}`;
+		const quoteHtml = `&ldquo;${L.quote}&rdquo;<br>&mdash; ${L.quoteAuthor}`;
+		quote.appendChild(sanitizeHTMLToDom(quoteHtml));
 
 		this.launchConfetti();
 	}
@@ -40,17 +41,19 @@ export class VictoryModal extends Modal {
 	private launchConfetti(): void {
 		const colors = ["#f7d94e", "#f5a623", "#ff6b6b", "#48dbfb", "#ff9ff3", "#54a0ff", "#5f27cd"];
 		for (let i = 0; i < 60; i++) {
-			const el = document.createElement("div");
+			const el = activeDocument.createElement("div");
 			el.addClass("sobriety-confetti");
-			el.style.left = Math.random() * 100 + "%";
-			el.style.width = (6 + Math.random() * 8) + "px";
-			el.style.height = (6 + Math.random() * 8) + "px";
-			el.style.background = colors[Math.floor(Math.random() * colors.length)];
-			el.style.borderRadius = Math.random() > 0.5 ? "50%" : "2px";
-			el.style.animationDuration = (2 + Math.random() * 3) + "s";
-			el.style.animationDelay = Math.random() * 2 + "s";
-			document.body.appendChild(el);
-			setTimeout(() => el.parentNode?.removeChild(el), 6000);
+			el.setCssProps({
+				left: Math.random() * 100 + "%",
+				width: (6 + Math.random() * 8) + "px",
+				height: (6 + Math.random() * 8) + "px",
+				background: colors[Math.floor(Math.random() * colors.length)],
+				borderRadius: Math.random() > 0.5 ? "50%" : "2px",
+				animationDuration: (2 + Math.random() * 3) + "s",
+				animationDelay: Math.random() * 2 + "s",
+			});
+			activeDocument.body.appendChild(el);
+			window.setTimeout(() => el.parentNode?.removeChild(el), 6000);
 		}
 	}
 }
