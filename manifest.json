@@ -1,7 +1,7 @@
 {
 	"id": "sobriety-tracker",
 	"name": "Sobriety Tracker",
-	"version": "0.1.0",
+	"version": "1.0.0",
 	"minAppVersion": "1.7.2",
 	"description": "Urge timer, daily check-in reminder, and streak tracking for sobriety recovery.",
 	"author": "tiancaijb",
