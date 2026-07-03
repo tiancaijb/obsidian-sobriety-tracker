@@ -52,7 +52,7 @@ export class SobrietySettingTab extends PluginSettingTab {
 			.setDesc(L.urgeTimerDuration.desc)
 			.addDropdown(drop => {
 				[5, 10, 15, 20, 25, 30, 45, 60, 90, 120].forEach(v =>
-					drop.addOption(String(v), `${v} ${L.settings.minutes}`));
+					drop.addOption(String(v), `${v} ${L.minutes}`));
 				drop.setValue(String(this.plugin.settings.urgeTimerMinutes));
 				drop.onChange(async val => {
 					this.plugin.settings.urgeTimerMinutes = Number(val);
@@ -95,9 +95,9 @@ export class SobrietySettingTab extends PluginSettingTab {
 			.setName(L.reminderTolerance.name)
 			.setDesc(L.reminderTolerance.desc)
 			.addDropdown(drop => {
-				drop.addOption("0", L.settings.disabled);
+				drop.addOption("0", L.disabled);
 				[15, 30, 45, 60, 90, 120, 150, 180].forEach(v =>
-					drop.addOption(String(v), `${v} ${L.settings.minutes}`));
+					drop.addOption(String(v), `${v} ${L.minutes}`));
 				drop.setValue(String(this.plugin.settings.reminderToleranceMinutes));
 				drop.onChange(async val => {
 					this.plugin.settings.reminderToleranceMinutes = Number(val);
